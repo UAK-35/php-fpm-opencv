@@ -3,10 +3,10 @@ ARG PHP_VERSION="7.3"
 ARG ALPINE_VERSION="3.9"
 ARG APCU_VERSION="5.1.17"
 ARG APCU_BC_VERSION="1.0.5"
-ARG TZ="Europe/Paris"
-ARG LANG="fr_fr.UTF-8"
-ARG LANGUAGE="fr_fr.UTF-8"
-ARG LC_ALL="fr_fr.UTF-8"
+ARG TZ="Asia/Karachi"
+ARG LANG="en_us.UTF-8"
+ARG LANGUAGE="en_us.UTF-8"
+ARG LC_ALL="en_us.UTF-8"
 ARG OPENCV_VERSION="4.5.0"
 ARG OPENJDK_VERSION="8"
 ARG IMAGEMAGICK_VERSION="6.9.12-20"
@@ -27,9 +27,9 @@ LABEL org.label-schema.name="opencv" \
       org.label-schema.url="" \
       org.label-schema.usage="" \
       org.label-schema.vcs-url="" \
-      org.label-schema.vendor="benjy8001" \
+      org.label-schema.vendor="UAK-35" \
       org.label-schema.version="4.5.0" \
-      maintainer="benjy8001"
+      maintainer="UAK-35"
 
 ARG APCU_VERSION
 ARG APCU_BC_VERSION
@@ -47,7 +47,8 @@ ENV LC_ALL=$LC_ALL
 ENV MUSL_LOCPATH /usr/share/i18n/locales/musl
 ENV ELASTIC_APM_AGENT_VERSION=$ELASTIC_APM_AGENT_VERSION
 
-RUN apk add --no-cache \
+RUN echo $PHPIZE_DEPS && echo $'\n\n\nstep-1 php' && \
+    apk add --no-cache \
         ca-certificates \
         icu-libs \
         freetype-dev \
@@ -75,9 +76,11 @@ RUN apk add --no-cache \
         make \
         gcc \
          && \
+    echo $'\n\n\nstep-2 apm-agent-php' && \
     wget "https://github.com/elastic/apm-agent-php/releases/download/v${ELASTIC_APM_AGENT_VERSION}/apm-agent-php_${ELASTIC_APM_AGENT_VERSION}_all.apk" && \
             apk add --allow-untrusted "apm-agent-php_${ELASTIC_APM_AGENT_VERSION}_all.apk" && \
             rm "apm-agent-php_${ELASTIC_APM_AGENT_VERSION}_all.apk" && \
+    echo $'\n\n\nstep-3 imagemagick' && \
     wget https://download.imagemagick.org/ImageMagick/download/releases/ImageMagick-${IMAGEMAGICK_VERSION}.tar.xz -O /tmp/ImageMagick-${IMAGEMAGICK_VERSION}.tar.xz && \
     tar -xJf /tmp/ImageMagick-${IMAGEMAGICK_VERSION}.tar.xz -C /tmp/ && \
     rm /tmp/ImageMagick-${IMAGEMAGICK_VERSION}.tar.xz && \
@@ -86,12 +89,14 @@ RUN apk add --no-cache \
     rm -R /tmp/ImageMagick-${IMAGEMAGICK_VERSION} && \
     docker-php-ext-install intl \
     	zip && \
+    echo $'\n\n\nstep-4 apcu' && \
     wget "https://pecl.php.net/get/apcu-${APCU_VERSION}.tgz" -O /tmp/apcu.tar.gz && \
     mkdir -p /usr/src/php/ext/apcu && \
     tar xf /tmp/apcu.tar.gz -C /usr/src/php/ext/apcu --strip-components=1 && \
     docker-php-ext-configure apcu && \
     docker-php-ext-install -j"$(nproc)" apcu && \
     rm /tmp/apcu.tar.gz && \
+    echo $'\n\n\nstep-5 apcu_bc' && \
     wget "https://pecl.php.net/get/apcu_bc-${APCU_BC_VERSION}.tgz" -O /tmp/apcu_bc.tar.gz && \
     mkdir -p /usr/src/php/ext/apcu-bc && \
     tar xf /tmp/apcu_bc.tar.gz -C /usr/src/php/ext/apcu-bc --strip-components=1 && \
@@ -102,6 +107,7 @@ RUN apk add --no-cache \
     echo extension=apcu.so > /usr/local/etc/php/conf.d/20-php-ext-apcu.ini && \
     ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && \
     echo ${TZ} > /etc/timezone && \
+    echo $'\n\n\nstep-6 php extensions' && \
     docker-php-ext-enable opcache && \
     docker-php-ext-install mysqli pdo pdo_mysql && \
     docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ && \
@@ -120,7 +126,8 @@ RUN apk add --no-cache \
     apk del .build-deps icu-dev $PHPIZE_DEPS zlib-dev && \
     apk add gosu --update --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ --allow-untrusted && \
     addgroup bar && \
-    adduser -D -h /home -s /bin/sh -G bar foo
+    adduser -D -h /home -s /bin/sh -G bar foo && \
+    echo $'\n\n\nstep-7 opencv'
 
 # ======================================================================================================================
 #                                               --- Opencv stage ---
@@ -144,6 +151,7 @@ RUN cd /opt && \
     export PKG_CONFIG=/usr/bin/pkg-config && export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib64/pkgconfig/ && export LD_LIBRARY_PATH="/usr/local/lib64/" && \
 	cd /opt/opencv-${OPENCV_VERSION} && \
     mkdir build && cd build && \
+    echo $'\n\n\nstep-7a opencv build' && \
     cmake -D CMAKE_BUILD_TYPE=RELEASE \
           -D CMAKE_INSTALL_PREFIX=/usr/local \
           -D WITH_TBB=ON \
@@ -162,10 +170,12 @@ RUN cd /opt && \
           -D OPENCV_GENERATE_PKGCONFIG=ON \
           -D OPENCV_PC_FILE_NAME=opencv4.pc \
           -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-${OPENCV_VERSION}/modules .. && \
+    echo $'\n\n\nstep-7b opencv make-install' && \
     make -j2 && make install && \
     cd ../.. && \
     rm -R opencv-${OPENCV_VERSION} && \
-    rm -R opencv_contrib-${OPENCV_VERSION}
+    rm -R opencv_contrib-${OPENCV_VERSION} && \
+    echo $'\n\n\nstep-8 php-opencv'
 
 # ======================================================================================================================
 #                                              --- PHP Opencv stage ---
@@ -181,10 +191,12 @@ RUN apk add --no-cache php7-dev && \
     git checkout f02a950ba43794a62e12b9a1ad09d04d7d232b72 && \
     phpize && \
     ./configure --with-php-config=/usr/bin/php-config && \
+    echo $'\n\n\nstep-8a php-opencv make-test-install' && \
     make && make test && make install && \
     cd ../ && \
     rm -R php-opencv && \
-    apk del php7-dev
+    apk del php7-dev && \
+    echo $'\n\n\nstep-9 fpm-prod'
 
 
 # ======================================================================================================================
@@ -230,7 +242,8 @@ FROM fpm-prod as fpm-dev
 ENV PATH="/usr/lib/jvm/java-1.8-openjdk/jre/bin:/usr/lib/jvm/java-1.8-openjdk/bin:${PATH}"
 
 # Xdebug
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS	&& \
+RUN echo $'\n\n\nstep-10 fpm-dev' && \
+    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS	&& \
     pecl install xdebug && \
     docker-php-ext-enable xdebug && \
     apk del -f .build-deps
@@ -243,3 +256,4 @@ RUN ln -sf /usr/lib/jvm/java-1.8-openjdk/bin/java /usr/bin/
 WORKDIR /srv
 
 ENTRYPOINT ["/entrypoint"]
+RUN echo $'\n\n\n....................DONE....................\n\n'

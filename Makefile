@@ -4,7 +4,7 @@ SHELL=/bin/sh
 ifndef VERBOSE
 .SILENT:
 endif
-PHP_VERSIONS := 7.2 7.3 7.4
+PHP_VERSIONS := 7.3
 PHP_VERSION ?= $(lastword $(sort $(PHP_VERSIONS)))
 COLOR_COMMENT=\033[0;32m
 IMAGE_PATH=/benjy80/php-fpm-opencv
@@ -80,3 +80,7 @@ build_74:
 ## push image
 push_74_image: registry_login
 	docker push ${REGISTRY_DOMAIN}${IMAGE_PATH}-7.4:${VERSION}
+
+## build image and tags it
+build_80:
+	docker build --target fpm-prod -f php-fpm/8.0/Dockerfile ./php-fpm/8.0 -t ${REGISTRY_DOMAIN}${IMAGE_PATH}-8.0:${VERSION}; \

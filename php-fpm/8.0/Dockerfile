@@ -113,7 +113,7 @@ RUN export PKG_CONFIG=/usr/bin/pkg-config && export PKG_CONFIG_PATH=$PKG_CONFIG_
 # PHP Opencv image with alias
 FROM opencv as phpopencv
 
-RUN apk add --no-cache php-dev && \
+RUN apk add --no-cache php8-dev && \
 	export PKG_CONFIG=/usr/bin/pkg-config && export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib64/pkgconfig/ && export LD_LIBRARY_PATH="/usr/local/lib64/" && \
     cd /opt && \
     git clone https://github.com/php-opencv/php-opencv.git && \
@@ -139,9 +139,9 @@ LABEL org.label-schema.name="opencv" \
       org.label-schema.url="" \
       org.label-schema.usage="" \
       org.label-schema.vcs-url="" \
-      org.label-schema.vendor="benjy8001" \
+      org.label-schema.vendor="UAK-35" \
       org.label-schema.version="4.4.1" \
-      maintainer="benjy8001"
+      maintainer="UAK-35"
 
 RUN mkdir -p /usr/local/bin/ && \
 	mkdir -p /usr/local/lib64/ && \

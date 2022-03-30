@@ -1,11 +1,13 @@
 FROM httpd:2.4.46-alpine as base
 
-RUN set -x \
+RUN echo $'\n\n\nstep-1 apache2/httpd' && \
+    set -x \
     && apk update && apk upgrade \
     && apk add --no-cache ca-certificates openssl apache2-proxy apache2-ssl
 
 ## ajout d'un petit peu de css sur l'auto index des logs :p
-RUN wget -O /tmp/fancy.zip https://github.com/Vestride/fancy-index/archive/main.zip \
+RUN echo $'\n\n\nstep-2 fancy directory index' && \
+    wget -O /tmp/fancy.zip https://github.com/Vestride/fancy-index/archive/main.zip \
     && cd /tmp \
     && unzip fancy.zip \
     && rm fancy.zip \
@@ -23,7 +25,8 @@ RUN mv /usr/share/httpd/fancy-index/style.css /usr/share/httpd/fancy-index/scrip
 FROM base as configuration
 
  # Enable some modules.
-RUN sed -i 's@^#LoadModule deflate_module modules/mod_deflate.so@LoadModule deflate_module modules/mod_deflate.so@g' /usr/local/apache2/conf/httpd.conf && \
+RUN echo $'\n\n\nstep-3 adding modules' && \
+    sed -i 's@^#LoadModule deflate_module modules/mod_deflate.so@LoadModule deflate_module modules/mod_deflate.so@g' /usr/local/apache2/conf/httpd.conf && \
     sed -i 's@^#LoadModule expires_module modules/mod_expires.so@LoadModule expires_module modules/mod_expires.so@g' /usr/local/apache2/conf/httpd.conf && \
     sed -i 's@^#LoadModule rewrite_module modules/mod_rewrite.so@LoadModule rewrite_module modules/mod_rewrite.so@g' /usr/local/apache2/conf/httpd.conf && \
     sed -i 's@^#LoadModule proxy_module modules/mod_proxy.so@LoadModule proxy_module modules/mod_proxy.so@g' /usr/local/apache2/conf/httpd.conf && \
@@ -44,11 +47,12 @@ LABEL org.label-schema.name="Httpd Service" \
       org.label-schema.url="" \
       org.label-schema.usage="" \
       org.label-schema.vcs-url="" \
-      org.label-schema.vendor="benjy8001" \
+      org.label-schema.vendor="UAK-35" \
       org.label-schema.version="2.4.46" \
-      maintainer="benjy8001"
+      maintainer="UAK-35"
 
-RUN mkdir /usr/local/apache2/conf/conf.d && \
+RUN echo $'\n\n\nstep-4 finalizing configuration' && \
+    mkdir /usr/local/apache2/conf/conf.d && \
     mkdir /usr/local/apache2/conf/vhost.d && \
     mkdir /usr/local/apache2/conf/ssl
 
@@ -57,3 +61,4 @@ COPY conf.d /usr/local/apache2/conf/conf.d
 COPY vhost.d /usr/local/apache2/conf/vhost.d
 
 WORKDIR /srv
+RUN echo $'\n\n\n....................DONE....................\n\n'
